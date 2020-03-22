@@ -1,11 +1,11 @@
 # Exercise Tracker REST API
 
-#### A microservice project, part of Free Code Camp's curriculum
+#### Проект микросервиса, часть учебной программы Free Code Camp's
 
-### User Stories
+### Заметки пользователя
 
-1. I can create a user by posting form data username to /api/exercise/new-user and returned will be an object with username and _id.
-2. I can get an array of all users by getting api/exercise/users with the same info as when creating a user.
-3. I can add an exercise to any user by posting form data userId(_id), description, duration, and optionally date to /api/exercise/add. If no date supplied it will use current date. Returned will be the user object with also with the exercise fields added.
-4. I can retrieve a full exercise log of any user by getting /api/exercise/log with a parameter of userId(_id). Return will be the user object with added array log and count (total exercise count).
-5. I can retrieve part of the log of any user by also passing along optional parameters of from & to or limit. (Date format yyyy-mm-dd, limit = int)
+1. Можно создать пользователя, введя в форму имя пользователя (username) и отправив POST запрос по адресу `/api/exercise/new-user`. На этот адрес должен вернуться объект с username и \_id, например, {"username":"Игорь","_id":"Hyyt-HHUL"}.
+2. Перейдя по адресу `https://exercise-tracker-injashkin.glitch.me/api/exercise/users` можно получить массив всех пользователей, с той же информацией, что и при создании пользователя.
+3. Можно добавить упражнение любому пользователю, введя в форму идентификатор пользователя (userId(\_id)), описание (description), продолжительность (duration) и, необязательно, дату (date). Если дата не указана, будет использоваться текущая дата. Данные из формы будут отправлены с помощью POST запроса по адресу `/api/exercise/add` и на этот же адрес будет возвращен объект упражнения пользователя с такими же добавленными полями.
+4. Можно получить полный журнал упражнений любого пользователя, перейдя по адресу `https://exercise-tracker-injashkin.glitch.me/api/exercise/log?userId=Идентификатор_пользователя`. Приложение вернет объект пользователя, в котором добавлены `log` с массивом и `count` (общее количество упражнений).
+5. Можно получить часть журнала любого пользователя, передавая необязательные параметры from&to или limit. (Формат даты yyyy-mm-dd, limit = int). Пример GET запроса: `https://exercise-tracker-injashkin.glitch.me/api/exercise/log?userId=Идентификатор_пользователя&from=гггг-мм-дд&to=гггг-мм-дд&limit=целое_число`
