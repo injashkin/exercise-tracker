@@ -84,24 +84,40 @@ app.post("/api/exercise/new-user", (req, res) => {
   });
 });
 
+/*Перейдя по адресу https://exercise-tracker-injashkin.glitch.me/api/exercise/users 
+получаем массив всех пользователей, с username и _id.*/
 app.get("/api/exercise/users", (req, res) => {
   Tracker.find({}, (err, data) => {
     if (err) return console.error(err);
     console.log(data);
-    res.json({ data });
+    res.send(data);
   });
 });
 
+/**/
 app.post("/api/exercise/add", (req, res) => {
-  // Получаем из формы имя пользователя
-  res.json({
-    _id: req.body.userId,
-    description: req.body.description,
-    duration: req.body.duration,
-    date: req.body.date
-  });
+  // Получаем из формы ИД пользователя
+  let userId = req.body.userId;
+  //описание упражнения
+  let description = req.body.description;
+  //время выполнения
+  let duration = req.body.duration;
+  //дату
+  let date = req.body.date;
+  console.log(userId, description, duration, date);
+  //Ищем пользователя в БД по его ИД
+  Tracker.findByIdAndUpdate(
+    { _id: userId },
+    { description: description, duration: duration, date: date },
+    { new: true },
+    (err, data) => {
+      if (err) return console.error(err);
+    }
+  );
+  res.json({});
 });
 
+/**/
 app.get("/api/exercise/log:userId", (req, res) => {
   console.log(req.params.userId);
   res.json({});
