@@ -21,7 +21,15 @@ mongoose.connect(
 
 // Создаем схему
 var tracker = new mongoose.Schema({
-  username: { type: String }
+  username: String,
+  count: Number,
+  log: [
+    {
+      description: String,
+      duration: Number,
+      date: { type: Date, default: Date.now }
+    }
+  ]
 });
 
 //Создаем модель из схемы
@@ -65,6 +73,8 @@ app.use((err, req, res, next) => {
 });
 */
 
+/*Обрабатываем POST запрос из первой формы,
+которая создает нового пользователя*/
 app.post("/api/exercise/new-user", (req, res) => {
   // Получаем из формы имя пользователя
   let username = req.body.username;
@@ -78,23 +88,26 @@ app.post("/api/exercise/new-user", (req, res) => {
       data.save((err, data) => {
         if (err) return console.error(err);
       });
-    }
-    //Выводим из БД имя пользователя и его ИД в формате JSON
-    res.json({ username: data.username, _id: data._id });
+      //и выводим из БД имя пользователя и его ИД в формате JSON
+      res.json({ username: data.username, _id: data._id });
+      //иначе, имя пользователя уже существует в БД
+    } else res.send("имя пользователя уже занято");
   });
 });
 
 /*Перейдя по адресу https://exercise-tracker-injashkin.glitch.me/api/exercise/users 
 получаем массив всех пользователей, с username и _id.*/
 app.get("/api/exercise/users", (req, res) => {
-  Tracker.find({}, (err, data) => {
-    if (err) return console.error(err);
-    console.log(data);
-    res.send(data);
-  });
+  Tracker.find({})
+    .select("_id username __v")
+    .exec((err, data) => {
+      if (err) return console.error(err);
+      res.send(data);
+    });
 });
 
-/**/
+/*Обрабатываем POST запрос из второй формы,
+которая добавляет упражнение*/
 app.post("/api/exercise/add", (req, res) => {
   // Получаем из формы ИД пользователя
   let userId = req.body.userId;
@@ -104,17 +117,18 @@ app.post("/api/exercise/add", (req, res) => {
   let duration = req.body.duration;
   //дату
   let date = req.body.date;
-  console.log(userId, description, duration, date);
   //Ищем пользователя в БД по его ИД
   Tracker.findByIdAndUpdate(
     { _id: userId },
+    //и обновляем или добавляем поля
     { description: description, duration: duration, date: date },
     { new: true },
     (err, data) => {
       if (err) return console.error(err);
+      data.__v = undefined;
+      res.send(data);
     }
   );
-  res.json({});
 });
 
 /**/
