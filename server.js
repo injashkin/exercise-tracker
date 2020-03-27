@@ -21,6 +21,7 @@ mongoose.connect(
 
 // Создаем схему
 var tracker = new mongoose.Schema({
+  _id: String,
   username: String,
   count: Number,
   log: [
@@ -118,25 +119,38 @@ app.post("/api/exercise/add", (req, res) => {
   //дату
   let date = req.body.date;
   //если дата не указана, назначаем текущую дату
-  if (!date) date = Date.now();
-  //Ищем пользователя в БД по его ИД
-  Tracker.findByIdAndUpdate(
-    { _id: userId },
-    //и обновляем или добавляем поля:
-    { log: [{ description: description, duration: duration, date: date }] },
-    { new: true },
-    (err, data) => {
-      if (err) return console.error(err);
-      if (!data) return res.send("такого ИД не существует");
-      res.json({
-        username: data.username,
-        description: data.log[0].description,
-        duration: data.log[0].duration,
-        _id: data._id,
-        date: data.log[0].date
-      });
-    }
-  );
+  if (!date) date = Date.now();  
+  //Если одно из обязательных полей не указано,
+  //выводим сообщение
+  if (!userId) {
+    res.send("Поле ИД является обязательным");
+  }
+  else if (!description) {
+    res.send("Поле description является обязательным");
+  }
+  else if (!duration) {
+    res.send("Поле duration является обязательным");
+  }
+  //Иначе ищем пользователя в БД по его ИД
+  else {
+    Tracker.findByIdAndUpdate(
+      { _id: userId },
+      //и обновляем или добавляем поля:
+      { log: [{ description: description, duration: duration, date: date }] },
+      { new: true },
+      (err, data) => {
+        if (err) return console.error("Ошибка: " + err);
+        if (!data) return res.send("такого ИД не существует");
+        res.json({
+          username: data.username,
+          description: data.log[0].description,
+          duration: data.log[0].duration,
+          _id: data._id,
+          date: data.log[0].date
+        });
+      }
+    );
+  }
 });
 
 /**/
