@@ -14,21 +14,21 @@ mongoose.connect(
   { useNewUrlParser: true, useUnifiedTopology: true },
   err => {
     if (err) {
-      console.log("Ошибка подключения к БД \n" + err);
+      console.error("Ошибка подключения к БД \n" + err);
     } else console.log("БД подключена");
   }
 );
 
 // Создаем схему
 var tracker = new mongoose.Schema({
-  _id: String,
+  //_id: String,
   username: String,
   count: Number,
   log: [
     {
       description: String,
       duration: Number,
-      date: { type: Date, default: Date.now() }
+      date: { type: Date }
     }
   ]
 });
@@ -89,9 +89,10 @@ app.post("/api/exercise/new-user", (req, res) => {
       data.save((err, data) => {
         if (err) return console.error(err);
       });
+      console.log(data);
       //и выводим из БД имя пользователя и его ИД в формате JSON
       res.json({ username: data.username, _id: data._id });
-      //иначе, имя пользователя уже существует в БД
+      //иначе, выводим сообщение
     } else res.send("имя пользователя уже занято");
   });
 });
@@ -119,37 +120,48 @@ app.post("/api/exercise/add", (req, res) => {
   //дату
   let date = req.body.date;
   //если дата не указана, назначаем текущую дату
-  if (!date) date = Date.now();  
+  if (!date) date = new Date();
   //Если одно из обязательных полей не указано,
   //выводим сообщение
   if (!userId) {
     res.send("Поле ИД является обязательным");
-  }
-  else if (!description) {
+  } else if (!description) {
     res.send("Поле description является обязательным");
-  }
-  else if (!duration) {
+  } else if (!duration) {
     res.send("Поле duration является обязательным");
   }
-  //Иначе ищем пользователя в БД по его ИД
+  //Иначе ищем ИД пользователя в БД
   else {
-    Tracker.findByIdAndUpdate(
-      { _id: userId },
-      //и обновляем или добавляем поля:
-      { log: [{ description: description, duration: duration, date: date }] },
-      { new: true },
-      (err, data) => {
-        if (err) return console.error("Ошибка: " + err);
-        if (!data) return res.send("такого ИД не существует");
-        res.json({
-          username: data.username,
-          description: data.log[0].description,
-          duration: data.log[0].duration,
-          _id: data._id,
-          date: data.log[0].date
+    let exercise = { description: description, duration: duration, date: date };
+    Tracker.findById(userId, (err, data) => {
+      if (err) return console.error("Ошибка поиска: " + err);
+      if (!data) return res.send("такого ИД не существует");
+      //Ищем в журнале упражнение с одинаковым description
+      let itemLog = data.log.find(item => item.description === description);
+      //Если description найден, то обновляем найденный элемент массива, а count не изменяем
+      if (itemLog) {
+        data.log[data.count - 1] = exercise;
+        data.save(err => {
+          if (err) return console.error("Ошибка сохранения: " + err);
+        });
+      } else {
+        //иначе description не найден, поэтому, создаем новый элемент массива, а count увеличиваем на 1
+        if (!data.count) {
+          data.count = 1;
+        } else data.count++;
+        data.log[data.count - 1] = exercise;
+        data.save(err => {
+          if (err) return console.error("Ошибка сохранения: " + err);
         });
       }
-    );
+      res.json({
+        username: data.username,
+        description: data.log[data.count - 1].description,
+        duration: data.log[data.count - 1].duration,
+        _id: data._id,
+        date: data.log[data.count - 1].date
+      });
+    });
   }
 });
 
