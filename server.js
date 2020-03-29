@@ -84,7 +84,7 @@ app.post("/api/exercise/new-user", (req, res) => {
     if (err) return console.error(err);
     //Если имя пользователя не найдено
     if (!data) {
-      data = new Tracker({ username: username });
+      data = new Tracker({ username: username, count: 0, log: [] });
       //Сохраняем имя пользователя в БД
       data.save((err, data) => {
         if (err) return console.error(err);
@@ -146,9 +146,7 @@ app.post("/api/exercise/add", (req, res) => {
         });
       } else {
         //иначе description не найден, поэтому, создаем новый элемент массива, а count увеличиваем на 1
-        if (!data.count) {
-          data.count = 1;
-        } else data.count++;
+        data.count++;
         data.log[data.count - 1] = exercise;
         data.save(err => {
           if (err) return console.error("Ошибка сохранения: " + err);
@@ -166,9 +164,15 @@ app.post("/api/exercise/add", (req, res) => {
 });
 
 /**/
-app.get("/api/exercise/log:userId", (req, res) => {
-  console.log(req.params.userId);
-  res.json({});
+app.get("/api/exercise/log/:userId", (req, res) => {
+  let userId = req.params.userId;
+  Tracker.findById(userId)
+    .select("-log._id")
+    .exec((err, data) => {
+      if (err) return console.error("Ошибка поиска: " + err);
+      if (!data) return res.send("такого ИД не существует");
+      res.send(data);
+    });
 });
 
 app.listen(process.env.PORT || 3000, () => {
