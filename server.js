@@ -163,11 +163,24 @@ app.post("/api/exercise/add", (req, res) => {
   }
 });
 
-/**/
+/*Получаем полный журнал упражнений указанного пользователя*/
 app.get("/api/exercise/log/:userId", (req, res) => {
   let userId = req.params.userId;
   Tracker.findById(userId)
     .select("-log._id")
+    .exec((err, data) => {
+      if (err) return console.error("Ошибка поиска: " + err);
+      if (!data) return res.send("такого ИД не существует");
+      res.send(data);
+    });
+});
+
+/**/
+// /api/exercise/log?userId=5e80c69539e9e15e3c084ee9&from=2020-01-01&to=2020-04-01&limit=10
+app.get("/api/exercise/log/", (req, res) => {
+  let { userId, fromDate, toDate, limit } = req.query;
+  Tracker.findById(userId)
+    .limit(limit)
     .exec((err, data) => {
       if (err) return console.error("Ошибка поиска: " + err);
       if (!data) return res.send("такого ИД не существует");
