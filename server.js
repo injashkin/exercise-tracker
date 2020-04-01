@@ -178,14 +178,24 @@ app.get("/api/exercise/log/:userId", (req, res) => {
 /**/
 // /api/exercise/log?userId=5e80c69539e9e15e3c084ee9&from=2020-01-01&to=2020-04-01&limit=10
 app.get("/api/exercise/log/", (req, res) => {
-  let { userId, fromDate, toDate, limit } = req.query;
-  Tracker.findById(userId)
-    .limit(limit)
-    .exec((err, data) => {
-      if (err) return console.error("Ошибка поиска: " + err);
-      if (!data) return res.send("такого ИД не существует");
-      res.send(data);
+  let userId = req.query.userId;
+  let fromDate = new Date(req.query.from);
+  let toDate = new Date(req.query.to);
+  let limit = req.query.limit;
+  Tracker.findById(userId, (err, data) => {
+    if (err) return console.error("Ошибка поиска: " + err);
+    if (!data) return res.send("такого ИД не существует");
+    let log = data.log.filter(
+      item => item.date >= fromDate && item.date <= toDate
+    ).sort((a, b) => {
+    return new Date(b.date) - new Date(a.date);
     });
+    res.send(data);
+  });
+  //.where("log.duration").gt(3).lt(5)
+  //quer.gt(new Date(fromDate));
+  //quer.lt(new Date(toDate));
+  //console.log(quer);
 });
 
 app.listen(process.env.PORT || 3000, () => {
@@ -196,4 +206,13 @@ app.listen(process.env.PORT || 3000, () => {
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log("Your app is listening on port " + listener.address().port);
 });
+
+
+[{"_id":"5e8092a8e39e720956f1ead7","username":"asd111","__v":0},
+{"_id":"5e80c69539e9e15e3c084ee9","username":"asd","__v":23},
+{"_id":"5e810b36bcf26f039b6b147b","username":"hgf","__v":1},
+{"_id":"5e810c63bcf26f039b6b147c","username":"hgfgf","__v":0},
+{"_id":"5e8458157809992471ecaf6f","username":"inja","__v":0},
+{"_id":"5e8458417809992471ecaf70","username":"игорь","__v":0}]
+
 */
