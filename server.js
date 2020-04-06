@@ -7,6 +7,9 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 
 const mongoose = require("mongoose");
+
+var Exercises = require("./models/exsercises");
+var Users = require("./models/users");
 /**Соединение с базой данных. Параметры подключения 
 читаются из переменной окружения MONGOLAB_URI файла .env **/
 mongoose.connect(
@@ -18,23 +21,6 @@ mongoose.connect(
     } else console.log("БД подключена");
   }
 );
-
-// Создаем схему
-var tracker = new mongoose.Schema({
-  //_id: String,
-  username: String,
-  count: Number,
-  log: [
-    {
-      description: String,
-      duration: Number,
-      date: { type: Date }
-    }
-  ]
-});
-
-//Создаем модель из схемы
-var Tracker = mongoose.model("Tracker", tracker);
 
 app.use(cors());
 
@@ -80,19 +66,21 @@ app.post("/api/exercise/new-user", (req, res) => {
   // Получаем из формы имя пользователя
   let username = req.body.username;
   // Ищем имя пользователя в БД
-  Tracker.findOne({ username: username }, (err, data) => {
+  Users.findOne({ username: username }, (err, data) => {
     if (err) return console.error(err);
     //Если имя пользователя не найдено
     if (!data) {
-      data = new Tracker({ username: username, count: 0, log: [] });
+      data = new Users({
+        _id: new mongoose.Types.ObjectId(),
+        username: username
+      });
       //Сохраняем имя пользователя в БД
       data.save((err, data) => {
         if (err) return console.error(err);
       });
-      console.log(data);
       //и выводим из БД имя пользователя и его ИД в формате JSON
       res.json({ username: data.username, _id: data._id });
-      //иначе, выводим сообщение
+      //Если имя пользователя найдено, выводим сообщение
     } else res.send("имя пользователя уже занято");
   });
 });
@@ -100,79 +88,70 @@ app.post("/api/exercise/new-user", (req, res) => {
 /*Перейдя по адресу https://exercise-tracker-injashkin.glitch.me/api/exercise/users 
 получаем массив всех пользователей, с username и _id.*/
 app.get("/api/exercise/users", (req, res) => {
-  Tracker.find({})
-    .select("_id username __v")
-    .exec((err, data) => {
-      if (err) return console.error(err);
-      res.send(data);
-    });
+  Users.find({}, (err, data) => {
+    if (err) return console.error(err);
+    res.send(data);
+  });
 });
 
 /*Обрабатываем POST запрос из второй формы,
 которая добавляет упражнение*/
 app.post("/api/exercise/add", (req, res) => {
-  // Получаем из формы ИД пользователя
-  let userId = req.body.userId;
-  //описание упражнения
-  let description = req.body.description;
-  //время выполнения
-  let duration = req.body.duration;
-  //дату
-  let date = req.body.date;
-  //если дата не указана, назначаем текущую дату
-  if (!date) date = new Date();
+  //если дата в форме не указана, назначаем текущую дату
+  if (!req.body.date) {
+    req.body.date = new Date();
+  }
+
   //Если одно из обязательных полей не указано,
   //выводим сообщение
-  if (!userId) {
+  if (!req.body.userId) {
     res.send("Поле ИД является обязательным");
-  } else if (!description) {
+  } else if (!req.body.description) {
     res.send("Поле description является обязательным");
-  } else if (!duration) {
+  } else if (!req.body.duration) {
     res.send("Поле duration является обязательным");
   }
-  //Иначе ищем ИД пользователя в БД
+  //Если все обязательные поля формы заполнены ищем ИД пользователя в БД
   else {
-    let exercise = { description: description, duration: duration, date: date };
-    Tracker.findById(userId, (err, data) => {
+    Users.findById(req.body.userId, (err, dataUser) => {
       if (err) return console.error("Ошибка поиска: " + err);
-      if (!data) return res.send("такого ИД не существует");
-      //Ищем в журнале упражнение с одинаковым description
-      let itemLog = data.log.find(item => item.description === description);
-      //Если description найден, то обновляем найденный элемент массива, а count не изменяем
-      if (itemLog) {
-        data.log[data.count - 1] = exercise;
-        data.save(err => {
-          if (err) return console.error("Ошибка сохранения: " + err);
+      if (!dataUser) return res.send("такого ИД не существует");
+
+      const exercise = new Exercises(req.body);
+      exercise.username = dataUser.username;
+      exercise.save((err, data) => {
+        if (err) return console.error("Ошибка сохранения: " + err);
+        res.json({
+          _id: data.userId,
+          username: data.username,
+          description: data.description,
+          duration: data.duration,
+          date: data.date
         });
-      } else {
-        //иначе description не найден, поэтому, создаем новый элемент массива, а count увеличиваем на 1
-        data.count++;
-        data.log[data.count - 1] = exercise;
-        data.save(err => {
-          if (err) return console.error("Ошибка сохранения: " + err);
-        });
-      }
-      res.json({
-        username: data.username,
-        description: data.log[data.count - 1].description,
-        duration: data.log[data.count - 1].duration,
-        _id: data._id,
-        date: data.log[data.count - 1].date
       });
     });
   }
 });
 
-/*Получаем полный журнал упражнений указанного пользователя*/
+/*Перейдя по адресу 
+https://exercise-tracker-injashkin.glitch.me/api/exercise/log/Идентификатор_пользователя,
+получаем полный журнал упражнений указанного пользователя. 
+Данный вариант не входит в User story*/
 app.get("/api/exercise/log/:userId", (req, res) => {
   let userId = req.params.userId;
-  Tracker.findById(userId)
-    .select("-log._id")
-    .exec((err, data) => {
-      if (err) return console.error("Ошибка поиска: " + err);
-      if (!data) return res.send("такого ИД не существует");
-      res.send(data);
+  Exercises.find({ userId: userId }, (err, data) => {
+    if (err) return console.error("Ошибка поиска: " + err);
+    if (!data) return res.send("такого ИД не существует");
+    res.json({
+      _id: data[0].userId,
+      username: data[0].username,
+      log: data.map(e => ({
+        description: e.description,
+        duration: e.duration,
+        date: e.date
+      }))
     });
+  });
 });
 
 /**/
@@ -182,14 +161,14 @@ app.get("/api/exercise/log/", (req, res) => {
   let fromDate = new Date(req.query.from);
   let toDate = new Date(req.query.to);
   let limit = req.query.limit;
-  Tracker.findById(userId, (err, data) => {
+  Exercises.findById(userId, (err, data) => {
     if (err) return console.error("Ошибка поиска: " + err);
     if (!data) return res.send("такого ИД не существует");
-    let log = data.log.filter(
-      item => item.date >= fromDate && item.date <= toDate
-    ).sort((a, b) => {
-    return new Date(b.date) - new Date(a.date);
-    });
+    let log = data.log
+      .filter(item => item.date >= fromDate && item.date <= toDate)
+      .sort((a, b) => {
+        return new Date(b.date) - new Date(a.date);
+      });
     res.send(data);
   });
   //.where("log.duration").gt(3).lt(5)
@@ -206,13 +185,4 @@ app.listen(process.env.PORT || 3000, () => {
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log("Your app is listening on port " + listener.address().port);
 });
-
-
-[{"_id":"5e8092a8e39e720956f1ead7","username":"asd111","__v":0},
-{"_id":"5e80c69539e9e15e3c084ee9","username":"asd","__v":23},
-{"_id":"5e810b36bcf26f039b6b147b","username":"hgf","__v":1},
-{"_id":"5e810c63bcf26f039b6b147c","username":"hgfgf","__v":0},
-{"_id":"5e8458157809992471ecaf6f","username":"inja","__v":0},
-{"_id":"5e8458417809992471ecaf70","username":"игорь","__v":0}]
-
 */
