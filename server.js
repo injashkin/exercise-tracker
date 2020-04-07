@@ -139,41 +139,43 @@ app.get("/api/exercise/log/:userId", (req, res) => {
 
 /**/
 // /api/exercise/log?userId=5e8b3bf3314330046c38ad53&from=2020-01-01&to=2020-04-01&limit=10
-app.get("/api/exercise/log/", (req, res) => {
+app.get("/api/exercise/log/", (req, res, next) => {
   let userId = req.query.userId;
   let fromDate = new Date(req.query.from);
   let toDate = new Date(req.query.to);
   let limit = req.query.limit;
   Users.findById(userId, (err, dataUser) => {
+    if (err) return next(err);
     if (err) return console.error("Ошибка поиска: " + err);
     if (!dataUser) return res.send("такого ИД не существует");
-    Exercises.find({ userId: userId }, (err, dataExercises) => {
-      if (err) {
-        console.error("Ошибка: " + err);
-        return res.send("Ошибка: " + err);
-      }
-      console.log(dataExercises);
-      if (!dataExercises === []) {
-        return res.send("У пользователя нет упражнений");
-      }
+    Exercises.find({ userId: userId })
+      .where("date")
+      .gt(fromDate)
+      .lt(toDate)
+      .sort("date")
+      //.limit(3)
+      .exec((err, dataExercises) => {
+        if (err) {
+          console.error("Ошибка: " + err);
+          return res.send("Ошибка: " + err);
+        }
+        if (!dataExercises === []) {
+          return res.send("У пользователя нет упражнений");
+        }
 
-      let out = {
-        _id: dataUser._id,
-        username: dataUser.username,
-        log: dataExercises.map(e => ({
-          description: e.description,
-          duration: e.duration,
-          date: e.date
-        }))
-      };
+        let out = {
+          _id: dataUser._id,
+          username: dataUser.username,
+          log: dataExercises.map(e => ({
+            description: e.description,
+            duration: e.duration,
+            date: e.date
+          }))
+        };
 
-      res.send(out);
-    });
+        res.send(out);
+      });
   });
-  //.where("log.duration").gt(3).lt(5)
-  //quer.gt(new Date(fromDate));
-  //quer.lt(new Date(toDate));
-  //console.log(quer);
 });
 
 /*
@@ -182,7 +184,7 @@ app.use((req, res, next) => {
   return next({ status: 404, message: "not found" });
 });
 */
-/*
+
 // Error Handling middleware
 app.use((err, req, res, next) => {
   let errCode, errMessage;
@@ -203,7 +205,6 @@ app.use((err, req, res, next) => {
     .type("txt")
     .send(errMessage);
 });
-*/
 
 app.listen(process.env.PORT || 3000, () => {
   console.log("Node.js listening ...");
