@@ -153,7 +153,7 @@ app.get("/api/exercise/log/", (req, res, next) => {
       .gt(fromDate)
       .lt(toDate)
       .sort("date")
-      .limit(limit)
+      //.limit(3)
       .exec((err, dataExercises) => {
         if (err) {
           console.error("Ошибка: " + err);
