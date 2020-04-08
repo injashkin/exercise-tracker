@@ -73,7 +73,6 @@ app.post("/api/exercise/add", (req, res) => {
   if (!req.body.date) {
     req.body.date = new Date();
   }
-
   //Если одно из обязательных полей не указано,
   //выводим сообщение
   if (!req.body.userId) {
@@ -94,18 +93,18 @@ app.post("/api/exercise/add", (req, res) => {
       exercise.save((err, data) => {
         if (err) return console.error("Ошибка сохранения: " + err);
         res.json({
-          _id: data.userId,
+          _id: req.body.userId,
           username: data.username,
           description: data.description,
-          duration: data.duration,
-          date: data.date
+          duration: data.duration,          
+          date: (new Date(data.date)).toDateString()
         });
       });
     });
   }
 });
 
-/*
+
 //Перейдя по адресу 
 //https://exercise-tracker-injashkin.glitch.me/api/exercise/log/Идентификатор_пользователя,
 //получаем полный журнал упражнений указанного пользователя. 
@@ -135,7 +134,7 @@ app.get("/api/exercise/log/:userId", (req, res) => {
     res.json(out);
   });
 });
-*/
+
 
 /**/
 //  api/exercise/log?userId=5e8b3c69314330046c38ad54&from=2020-01-01&to=2020-05-01&limit=10
