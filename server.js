@@ -138,22 +138,22 @@ app.get("/api/exercise/log/:userId", (req, res) => {
 */
 
 /**/
-// /api/exercise/log?userId=5e8b3bf3314330046c38ad53&from=2020-01-01&to=2020-04-01&limit=10
+//  api/exercise/log?userId=5e8b3c69314330046c38ad54&from=2020-01-01&to=2020-05-01&limit=10
 app.get("/api/exercise/log/", (req, res, next) => {
   let userId = req.query.userId;
   let fromDate = new Date(req.query.from);
   let toDate = new Date(req.query.to);
-  let limit = req.query.limit;
+  let limit = Number(req.query.limit);
   Users.findById(userId, (err, dataUser) => {
     if (err) return next(err);
     if (err) return console.error("Ошибка поиска: " + err);
     if (!dataUser) return res.send("такого ИД не существует");
     Exercises.find({ userId: userId })
       .where("date")
-      .gt(fromDate)
-      .lt(toDate)
+      .gt(fromDate == "Invalid Date" ? 0 : fromDate)
+      .lt(toDate == "Invalid Date" ? Date.now() : toDate)
       .sort("date")
-      //.limit(3)
+      .limit(limit)
       .exec((err, dataExercises) => {
         if (err) {
           console.error("Ошибка: " + err);
@@ -166,6 +166,9 @@ app.get("/api/exercise/log/", (req, res, next) => {
         let out = {
           _id: dataUser._id,
           username: dataUser.username,
+          from: fromDate == "Invalid Date" ? undefined : fromDate,
+          to: toDate == "Invalid Date" ? undefined : toDate,
+          count: dataExercises.length,
           log: dataExercises.map(e => ({
             description: e.description,
             duration: e.duration,
