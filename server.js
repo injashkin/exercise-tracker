@@ -93,7 +93,7 @@ app.post("/api/exercise/add", (req, res) => {
       exercise.save((err, data) => {
         if (err) return console.error("Ошибка сохранения: " + err);
         res.json({
-          username: data.username,
+          //username: data.username,
           description: data.description,
           duration: data.duration,
           _id: data.userId,
