@@ -73,7 +73,6 @@ app.post("/api/exercise/add", (req, res) => {
   if (!req.body.date) {
     req.body.date = new Date();
   }
-
   //Если одно из обязательных полей не указано,
   //выводим сообщение
   if (!req.body.userId) {
@@ -94,10 +93,10 @@ app.post("/api/exercise/add", (req, res) => {
       exercise.save((err, data) => {
         if (err) return console.error("Ошибка сохранения: " + err);
         res.json({
-          _id: data.userId,
           username: data.username,
           description: data.description,
           duration: data.duration,
+          _id: data.userId,
           date: data.date
         });
       });
